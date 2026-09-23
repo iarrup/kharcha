@@ -94,8 +94,8 @@ pytest -s
 |---|---|
 | `GET /` | Implemented — renders `landing.html` |
 | `GET/POST /register` | Implemented (Step 2) — form + account creation |
-| `GET /login` | Implemented — renders `login.html` |
-| `GET /logout` | Stub — Step 3 |
+| `GET/POST /login` | Implemented (Step 3) — form + session login |
+| `GET /logout` | Implemented (Step 3) — clears session, redirects to landing |
 | `GET /profile` | Stub — Step 4 |
 | `GET /expenses/add` | Stub — Step 7 |
 | `GET /expenses/<id>/edit` | Stub — Step 8 |
