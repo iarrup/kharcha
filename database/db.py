@@ -18,6 +18,35 @@ def get_db():
     return conn
 
 
+def get_user_by_email(email):
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT * FROM users WHERE email = ?", (email,)
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def create_user(name, email, password):
+    password_hash = generate_password_hash(password)
+    conn = get_db()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+            (name, email, password_hash),
+        )
+        conn.commit()
+        return cursor.lastrowid
+    except sqlite3.IntegrityError as e:
+        # Only a duplicate email is expected; anything else should surface.
+        if "UNIQUE constraint failed: users.email" in str(e):
+            return None
+        raise
+    finally:
+        conn.close()
+
+
 def init_db():
     conn = get_db()
     try:
