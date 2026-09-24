@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Profile — Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="profile">
+    <div class="profile-container">
+
+        <header class="profile-header">
+            <h1 class="profile-title">Your profile</h1>
+            <p class="profile-subtitle">Your account details and a summary of this month's spending.</p>
+        </header>
+
+        <section class="profile-card profile-user" aria-label="Account details">
+            <div class="profile-user__avatar" aria-hidden="true">{{ user.initials }}</div>
+            <div class="profile-user__info">
+                <p class="profile-user__name">{{ user.name }}</p>
+                <p class="profile-user__email">{{ user.email }}</p>
+                <p class="profile-user__meta">Member since {{ user.member_since }}</p>
+            </div>
+        </section>
+
+        <section class="profile-stats" aria-label="Summary">
+            <div class="profile-card profile-stat">
+                <p class="profile-stat__label">Total spent</p>
+                <p class="profile-stat__value">{{ "₹{:,.2f}".format(summary.total) }}</p>
+            </div>
+            <div class="profile-card profile-stat">
+                <p class="profile-stat__label">Transactions</p>
+                <p class="profile-stat__value">{{ summary.count }}</p>
+            </div>
+            <div class="profile-card profile-stat">
+                <p class="profile-stat__label">Top category</p>
+                {% if summary.top_category %}
+                <p class="profile-stat__value">{{ summary.top_category.name }}</p>
+                <p class="profile-stat__sub">{{ "₹{:,.2f}".format(summary.top_category.amount) }} · {{ summary.top_category.percent }}% of spend</p>
+                {% else %}
+                <p class="profile-stat__value">—</p>
+                {% endif %}
+            </div>
+        </section>
+
+        <div class="profile-grid">
+            <section class="profile-card profile-transactions" aria-labelledby="profile-transactions-title">
+                <h2 class="profile-section-title" id="profile-transactions-title">Recent transactions</h2>
+                <div class="profile-table-wrap">
+                    <table class="profile-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Date</th>
+                                <th scope="col">Description</th>
+                                <th scope="col">Category</th>
+                                <th scope="col" class="profile-table__num">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in expenses %}
+                            <tr class="profile-table__row">
+                                <td class="profile-table__date"><time datetime="{{ expense.date }}">{{ expense.date_label }}</time></td>
+                                <td>{{ expense.description }}</td>
+                                <td><span class="profile-badge profile-badge--{{ expense.category|lower }}">{{ expense.category }}</span></td>
+                                <td class="profile-table__num">{{ "₹{:,.2f}".format(expense.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="profile-card profile-breakdown" aria-labelledby="profile-breakdown-title">
+                <h2 class="profile-section-title" id="profile-breakdown-title">Spending by category</h2>
+                <ul class="profile-breakdown__list">
+                    {% for category in summary.categories %}
+                    <li class="profile-breakdown__item">
+                        <div class="profile-breakdown__head">
+                            <span class="profile-badge profile-badge--{{ category.slug }}">{{ category.name }}</span>
+                            <span class="profile-breakdown__amount">{{ "₹{:,.2f}".format(category.amount) }} · {{ category.percent }}%</span>
+                        </div>
+                        <div class="profile-bar" aria-hidden="true">
+                            <div class="profile-bar__fill profile-bar__fill--w-{{ category.bar_step }}"></div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
