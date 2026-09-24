@@ -28,6 +28,32 @@ def get_user_by_email(email):
         conn.close()
 
 
+def get_user_by_id(user_id):
+    conn = get_db()
+    try:
+        return conn.execute(
+            "SELECT * FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def get_expenses_by_user(user_id):
+    conn = get_db()
+    try:
+        return conn.execute(
+            """
+            SELECT id, amount, category, date, description
+            FROM expenses
+            WHERE user_id = ?
+            ORDER BY date DESC, id DESC
+            """,
+            (user_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+
+
 def authenticate_user(email, password):
     user = get_user_by_email(email)
     if user is None or not check_password_hash(user["password_hash"], password):

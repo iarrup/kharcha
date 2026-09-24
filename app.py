@@ -1,11 +1,13 @@
 import os
 import re
+from datetime import datetime
 
 from flask import (Flask, flash, redirect, render_template, request,
                    session, url_for)
 
 from database.db import (CATEGORIES, authenticate_user, create_user,
-                         get_user_by_email, init_db, seed_db)
+                         get_expenses_by_user, get_user_by_email,
+                         get_user_by_id, init_db, seed_db)
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
@@ -17,28 +19,6 @@ with app.app_context():
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 DUPLICATE_EMAIL_ERROR = "An account with that email already exists."
 LOGIN_ERROR = "Invalid email or password."
-
-# Hardcoded profile data for Step 4 — replaced by real queries in Step 5.
-PROFILE_USER = {"name": "Demo User", "email": "demo@spendly.com",
-                "initials": "DU", "member_since": "January 2026"}
-PROFILE_EXPENSES = [  # newest first; amounts in rupees
-    {"date": "2026-09-18", "date_label": "18 Sep 2026", "description": "Restaurant dinner",
-     "category": "Food", "amount": 1850.00},
-    {"date": "2026-09-15", "date_label": "15 Sep 2026", "description": "Birthday gift",
-     "category": "Other", "amount": 1100.00},
-    {"date": "2026-09-12", "date_label": "12 Sep 2026", "description": "Movie tickets",
-     "category": "Entertainment", "amount": 450.00},
-    {"date": "2026-09-10", "date_label": "10 Sep 2026", "description": "Running shoes",
-     "category": "Shopping", "amount": 1500.00},
-    {"date": "2026-09-08", "date_label": "08 Sep 2026", "description": "Pharmacy",
-     "category": "Health", "amount": 650.00},
-    {"date": "2026-09-05", "date_label": "05 Sep 2026", "description": "Electricity bill",
-     "category": "Bills", "amount": 2200.00},
-    {"date": "2026-09-04", "date_label": "04 Sep 2026", "description": "Metro card top-up",
-     "category": "Transport", "amount": 800.00},
-    {"date": "2026-09-02", "date_label": "02 Sep 2026", "description": "Groceries",
-     "category": "Food", "amount": 2450.00},
-]
 
 
 # ------------------------------------------------------------------ #
@@ -53,6 +33,37 @@ def validate_registration(name, email, password):
     if len(password) < 8:
         return "Password must be at least 8 characters."
     return None
+
+
+def _initials(name):
+    words = (name or "").split()
+    return "".join(word[0] for word in words[:2]).upper() or "?"
+
+
+def _format_date(value, fmt):
+    try:
+        return datetime.fromisoformat(value).strftime(fmt)
+    except (TypeError, ValueError):
+        return value or ""
+
+
+def build_profile_user(row):
+    return {
+        "name": row["name"],
+        "email": row["email"],
+        "initials": _initials(row["name"]),
+        "member_since": _format_date(row["created_at"], "%B %Y"),
+    }
+
+
+def build_profile_expense(row):
+    return {
+        "date": row["date"],
+        "date_label": _format_date(row["date"], "%d %b %Y"),
+        "description": (row["description"] or "").strip(),
+        "category": row["category"],
+        "amount": float(row["amount"]),
+    }
 
 
 def summarize_expenses(expenses):
@@ -155,11 +166,20 @@ def privacy():
 
 @app.route("/profile")
 def profile():
-    if not session.get("user_id"):
+    user_id = session.get("user_id")
+    if not user_id:
         return redirect(url_for("login"))
-    return render_template("profile.html", user=PROFILE_USER,
-                           expenses=PROFILE_EXPENSES,
-                           summary=summarize_expenses(PROFILE_EXPENSES))
+
+    user_row = get_user_by_id(user_id)
+    if user_row is None:
+        session.clear()
+        return redirect(url_for("login"))
+
+    expenses = [build_profile_expense(row)
+                for row in get_expenses_by_user(user_id)]
+    return render_template("profile.html", user=build_profile_user(user_row),
+                           expenses=expenses,
+                           summary=summarize_expenses(expenses))
 
 
 # ------------------------------------------------------------------ #
