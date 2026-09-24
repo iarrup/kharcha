@@ -12,7 +12,7 @@
 
         <header class="profile-header">
             <h1 class="profile-title">Your profile</h1>
-            <p class="profile-subtitle">Your account details and a summary of this month's spending.</p>
+            <p class="profile-subtitle">Your account details and a summary of your spending.</p>
         </header>
 
         <section class="profile-card profile-user" aria-label="Account details">
@@ -65,6 +65,10 @@
                                 <td><span class="profile-badge profile-badge--{{ expense.category|lower }}">{{ expense.category }}</span></td>
                                 <td class="profile-table__num">{{ "₹{:,.2f}".format(expense.amount) }}</td>
                             </tr>
+                            {% else %}
+                            <tr class="profile-table__empty-row">
+                                <td colspan="4" class="profile-empty">No expenses yet.</td>
+                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -73,6 +77,7 @@
 
             <section class="profile-card profile-breakdown" aria-labelledby="profile-breakdown-title">
                 <h2 class="profile-section-title" id="profile-breakdown-title">Spending by category</h2>
+                {% if summary.categories %}
                 <ul class="profile-breakdown__list">
                     {% for category in summary.categories %}
                     <li class="profile-breakdown__item">
@@ -86,6 +91,9 @@
                     </li>
                     {% endfor %}
                 </ul>
+                {% else %}
+                <p class="profile-empty">No spending to break down yet.</p>
+                {% endif %}
             </section>
         </div>
 
