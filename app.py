@@ -1,6 +1,6 @@
 import os
 import re
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from flask import (Flask, flash, redirect, render_template, request,
                    session, url_for)
@@ -19,6 +19,8 @@ with app.app_context():
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 DUPLICATE_EMAIL_ERROR = "An account with that email already exists."
 LOGIN_ERROR = "Invalid email or password."
+INVALID_DATE_ERROR = "Invalid date — showing all expenses."
+DATE_ORDER_ERROR = "Start date must be on or before end date."
 
 
 # ------------------------------------------------------------------ #
@@ -90,6 +92,66 @@ def summarize_expenses(expenses):
         "count": len(expenses),
         "top_category": categories[0] if categories else None,
         "categories": categories,
+    }
+
+
+def _parse_iso_date(value):
+    """Return (date or None, ok). A missing or empty value is ok."""
+    value = (value or "").strip()
+    if not value:
+        return None, True
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError:
+        return None, False
+    # fromisoformat also accepts forms like "20260902"; require YYYY-MM-DD.
+    if parsed.isoformat() != value:
+        return None, False
+    return parsed, True
+
+
+def parse_date_filter(args):
+    start, start_ok = _parse_iso_date(args.get("start"))
+    end, end_ok = _parse_iso_date(args.get("end"))
+    if not (start_ok and end_ok):
+        return None, None, INVALID_DATE_ERROR
+    if start and end and start > end:
+        return None, None, DATE_ORDER_ERROR
+    return start, end, None
+
+
+def build_date_presets(today):
+    today_iso = today.isoformat()
+    return [
+        {"label": "This month",
+         "start": today.replace(day=1).isoformat(), "end": today_iso},
+        {"label": "Last 30 days",
+         "start": (today - timedelta(days=29)).isoformat(), "end": today_iso},
+        {"label": "All time", "start": None, "end": None},
+    ]
+
+
+def build_date_filter(start, end, error):
+    start_iso = start.isoformat() if start else None
+    end_iso = end.isoformat() if end else None
+    start_label = _format_date(start_iso, "%d %b %Y")
+    end_label = _format_date(end_iso, "%d %b %Y")
+
+    if start_iso and end_iso:
+        label = f"Showing {start_label} – {end_label}"
+    elif start_iso:
+        label = f"From {start_label}"
+    elif end_iso:
+        label = f"Up to {end_label}"
+    else:
+        label = None
+
+    return {
+        "start": start_iso,
+        "end": end_iso,
+        "error": error,
+        "active": label is not None,
+        "label": label,
     }
 
 
@@ -175,11 +237,15 @@ def profile():
         session.clear()
         return redirect(url_for("login"))
 
-    expenses = [build_profile_expense(row)
-                for row in get_expenses_by_user(user_id)]
+    date_filter = build_date_filter(*parse_date_filter(request.args))
+    rows = get_expenses_by_user(user_id, date_filter["start"],
+                                date_filter["end"])
+    expenses = [build_profile_expense(row) for row in rows]
     return render_template("profile.html", user=build_profile_user(user_row),
                            expenses=expenses,
-                           summary=summarize_expenses(expenses))
+                           summary=summarize_expenses(expenses),
+                           filter=date_filter,
+                           presets=build_date_presets(date.today()))
 
 
 # ------------------------------------------------------------------ #
