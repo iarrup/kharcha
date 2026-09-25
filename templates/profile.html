@@ -24,6 +24,41 @@
             </div>
         </section>
 
+        <form method="get" action="{{ url_for('profile') }}" class="profile-card profile-filter" aria-label="Filter by date">
+            <div class="profile-filter__fields">
+                <div class="profile-filter__field">
+                    <label for="filter-start" class="profile-filter__label">From</label>
+                    <input type="date" id="filter-start" name="start"
+                           class="form-input profile-filter__input"
+                           value="{{ filter.start or '' }}">
+                </div>
+                <div class="profile-filter__field">
+                    <label for="filter-end" class="profile-filter__label">To</label>
+                    <input type="date" id="filter-end" name="end"
+                           class="form-input profile-filter__input"
+                           value="{{ filter.end or '' }}">
+                </div>
+                <div class="profile-filter__actions">
+                    <button type="submit" class="btn-primary">Apply</button>
+                    <a href="{{ url_for('profile') }}" class="btn-ghost">Clear</a>
+                </div>
+            </div>
+            <nav class="profile-filter__presets" aria-label="Date presets">
+                {% for preset in presets %}
+                {% set is_active = preset.start == filter.start and preset.end == filter.end %}
+                <a href="{{ url_for('profile', start=preset.start, end=preset.end) }}"
+                   class="profile-filter__preset{% if is_active %} is-active{% endif %}"
+                   {%- if is_active %} aria-current="true"{% endif %}>{{ preset.label }}</a>
+                {% endfor %}
+            </nav>
+            {% if filter.error %}
+            <p class="profile-filter__error" role="alert">{{ filter.error }}</p>
+            {% endif %}
+            {% if filter.active %}
+            <p class="profile-filter__caption">{{ filter.label }}</p>
+            {% endif %}
+        </form>
+
         <section class="profile-stats" aria-label="Summary">
             <div class="profile-card profile-stat">
                 <p class="profile-stat__label">Total spent</p>
@@ -67,7 +102,7 @@
                             </tr>
                             {% else %}
                             <tr class="profile-table__empty-row">
-                                <td colspan="4" class="profile-empty">No expenses yet.</td>
+                                <td colspan="4" class="profile-empty">{% if filter.active %}No expenses in this period.{% else %}No expenses yet.{% endif %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

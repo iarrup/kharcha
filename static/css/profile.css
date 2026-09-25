@@ -87,6 +87,85 @@
 }
 
 /* ------------------------------------------------------------------ */
+/* Date filter                                                        */
+/* ------------------------------------------------------------------ */
+
+.profile-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.profile-filter__fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+.profile-filter__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.profile-filter__label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ink-muted);
+}
+
+.profile-filter__input { width: auto; }
+
+.profile-filter__actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.profile-filter__presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.profile-filter__preset {
+    padding: 0.35rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--paper-card);
+    color: var(--ink-soft);
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.profile-filter__preset:hover {
+    background: var(--accent-light);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.profile-filter__preset.is-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--paper-card);
+}
+
+.profile-filter__error {
+    padding: 0.6rem 0.9rem;
+    border-radius: var(--radius-sm);
+    background: var(--danger-light);
+    color: var(--danger);
+    font-size: 0.875rem;
+}
+
+.profile-filter__caption {
+    font-size: 0.875rem;
+    color: var(--ink-muted);
+}
+
+/* ------------------------------------------------------------------ */
 /* Summary stats                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -297,6 +376,8 @@
     .profile-stats { grid-template-columns: minmax(0, 1fr); }
     .profile-card { padding: 1rem; }
     .profile-user { gap: 1rem; }
+    .profile-filter__fields { flex-direction: column; align-items: stretch; }
+    .profile-filter__input { width: 100%; }
     .profile-table-wrap { margin: 0 -1rem; padding: 0 1rem; }
     .profile-table { min-width: 560px; }
 }
