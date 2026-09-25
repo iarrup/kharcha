@@ -14,6 +14,14 @@
     gap: 1.5rem;
 }
 
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
 .profile-title {
     font-family: var(--font-display);
     font-weight: 400;
@@ -373,6 +381,8 @@
 @media (max-width: 768px) {
     .profile { padding: 2rem 1rem 3rem; }
     .profile-title { font-size: 1.5rem; }
+    .profile-header { flex-direction: column; align-items: stretch; }
+    .profile-header__action { text-align: center; }
     .profile-stats { grid-template-columns: minmax(0, 1fr); }
     .profile-card { padding: 1rem; }
     .profile-user { gap: 1rem; }

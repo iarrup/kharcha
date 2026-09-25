@@ -97,8 +97,8 @@ pytest -s
 | `GET/POST /register` | Implemented (Step 2) — form + account creation |
 | `GET/POST /login` | Implemented (Step 3) — form + session login |
 | `GET /logout` | Implemented (Step 3) — clears session, redirects to landing |
-| `GET /profile` | Implemented (Step 4) — profile page with hardcoded data |
-| `GET /expenses/add` | Stub — Step 7 |
+| `GET /profile` | Implemented (Steps 4–6) — profile page with DB data + date filter |
+| `GET/POST /expenses/add` | Implemented (Step 7) — form + expense creation |
 | `GET /expenses/<id>/edit` | Stub — Step 8 |
 | `GET /expenses/<id>/delete` | Stub — Step 9 |
 
@@ -113,6 +113,6 @@ pytest -s
 - **Never put DB logic in route functions** — it belongs in `database/db.py`
 - **Never install new packages** mid-feature without flagging it — keep `requirements.txt` in sync
 - **Never use JS frameworks** — the frontend is intentionally vanilla
-- **`database/db.py` is currently empty** — do not assume helpers exist until the step that implements them
+- **Check `database/db.py` before adding helpers** — only use helpers that already exist, and add new ones in the step that needs them
 - **FK enforcement is manual** — SQLite foreign keys are off by default; `get_db()` must run `PRAGMA foreign_keys = ON` on every connection
 - The app runs on **port 5001**, not the Flask default 5000 — don't change this

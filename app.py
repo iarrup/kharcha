@@ -1,3 +1,4 @@
+import math
 import os
 import re
 from datetime import date, datetime, timedelta
@@ -5,8 +6,8 @@ from datetime import date, datetime, timedelta
 from flask import (Flask, flash, redirect, render_template, request,
                    session, url_for)
 
-from database.db import (CATEGORIES, authenticate_user, create_user,
-                         get_expenses_by_user, get_user_by_email,
+from database.db import (CATEGORIES, authenticate_user, create_expense,
+                         create_user, get_expenses_by_user, get_user_by_email,
                          get_user_by_id, init_db, seed_db)
 
 app = Flask(__name__)
@@ -21,6 +22,15 @@ DUPLICATE_EMAIL_ERROR = "An account with that email already exists."
 LOGIN_ERROR = "Invalid email or password."
 INVALID_DATE_ERROR = "Invalid date — showing all expenses."
 DATE_ORDER_ERROR = "Start date must be on or before end date."
+AMOUNT_ERROR = "Please enter an amount greater than 0."
+CATEGORY_ERROR = "Please choose a valid category."
+EXPENSE_DATE_ERROR = "Please enter a valid date."
+FUTURE_DATE_ERROR = "Date can't be in the future."
+DESCRIPTION_ERROR = "Description must be 200 characters or fewer."
+
+EXPENSE_FIELDS = ("amount", "category", "date", "description")
+MAX_AMOUNT = 10_000_000
+MAX_DESCRIPTION_LENGTH = 200
 
 
 # ------------------------------------------------------------------ #
@@ -118,6 +128,43 @@ def parse_date_filter(args):
     if start and end and start > end:
         return None, None, DATE_ORDER_ERROR
     return start, end, None
+
+
+def validate_expense(form):
+    """Return (data, None) with cleaned values, or (None, error)."""
+    try:
+        amount = float((form.get("amount") or "").strip())
+    except (TypeError, ValueError):
+        return None, AMOUNT_ERROR
+    if not math.isfinite(amount):
+        return None, AMOUNT_ERROR
+    # Check the bounds after rounding so e.g. 0.004 isn't stored as 0.00.
+    amount = round(amount, 2)
+    if not 0 < amount <= MAX_AMOUNT:
+        return None, AMOUNT_ERROR
+
+    category = (form.get("category") or "").strip()
+    if category not in CATEGORIES:
+        return None, CATEGORY_ERROR
+
+    # _parse_iso_date treats a blank value as ok, but a date is required here.
+    raw_date = (form.get("date") or "").strip()
+    parsed, ok = _parse_iso_date(raw_date)
+    if not raw_date or not ok:
+        return None, EXPENSE_DATE_ERROR
+    if parsed > date.today():
+        return None, FUTURE_DATE_ERROR
+
+    description = (form.get("description") or "").strip() or None
+    if description and len(description) > MAX_DESCRIPTION_LENGTH:
+        return None, DESCRIPTION_ERROR
+
+    return {
+        "amount": amount,
+        "category": category,
+        "date": parsed.isoformat(),
+        "description": description,
+    }, None
 
 
 def build_date_presets(today):
@@ -248,14 +295,37 @@ def profile():
                            presets=build_date_presets(date.today()))
 
 
+@app.route("/expenses/add", methods=["GET", "POST"])
+def add_expense():
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("login"))
+    if get_user_by_id(user_id) is None:
+        session.clear()
+        return redirect(url_for("login"))
+
+    today = date.today().isoformat()
+    if request.method == "GET":
+        form = {"amount": "", "category": "", "date": today,
+                "description": ""}
+        return render_template("add_expense.html", form=form,
+                               categories=CATEGORIES, today=today)
+
+    # Only the known fields are read — never a user id from the form.
+    form = {field: request.form.get(field, "") for field in EXPENSE_FIELDS}
+    data, error = validate_expense(form)
+    if error:
+        return render_template("add_expense.html", form=form, error=error,
+                               categories=CATEGORIES, today=today), 400
+
+    create_expense(user_id, **data)
+    flash("Expense added.")
+    return redirect(url_for("profile"))
+
+
 # ------------------------------------------------------------------ #
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
-
-
-@app.route("/expenses/add")
-def add_expense():
-    return "Add expense — coming in Step 7"
 
 
 @app.route("/expenses/<int:id>/edit")
